@@ -1,7 +1,7 @@
 /* DownloadBuilder.js - v0.6.0 - 2012-12-12
 * http://www.gregfranko.com/downloadBuilder.js/
 * Copyright (c) 2012 Greg Franko; Licensed MIT */
-
+/*jslint browser:true*/
 // Immediately-Invoked Function Expression (IIFE) [Ben Alman Blog Post](http://benalman.com/news/2010/11/immediately-invoked-function-expression/) that calls another IIFE that contains all of the plugin logic.  I use this pattern so that anyone viewing this code does not have to scroll to the bottom of the page to view the local parameters that are passed into the main IIFE.
 (function (downloadBuilder) {
 
@@ -41,7 +41,10 @@
             "client_id": (obj && obj.client_id) || "",
 
             // Github client secret
-            "client_secret": (obj && obj.client_secret) || ""
+            "client_secret": (obj && obj.client_secret) || "",
+            
+            // error message element (if empty, will alert istead of populating)
+            "error_el": (obj && obj.error_el) || ""
 
         };
 
@@ -170,6 +173,15 @@
             // Calls the custom JSONP method (created by Oscar Goodson)
             this.JSONP(this.githubRateLimitUrl + "?client_id=" + this.options.client_id + "&client_secret=" + this.options.client_secret, function(data){
         
+                if(!data.data.rate){
+                    if(self.options.error_el){
+                        self.options.error_el.innerHTML = data.data.message;
+                        self.options.error_el.style.display = 'block';   
+                    }else{
+                        alert(data.data.message);
+                    }
+                    return;
+                }
                 // Sets an instance variable that determines if the Github rate limit has been reached or not
                 self.rateLimit = data.data.rate.remaining;
 
@@ -276,7 +288,6 @@
                     repoName,
                     repoBranch,
                     localPath,
-                    x,
                     lastElem;
 
                 // If the callback parameter is a function
@@ -394,7 +405,7 @@
                 xhr.open("GET", obj.url, true);
 
                 // Ajax event handler to check if the request is finished
-                xhr.onreadystatechange = function(e) {
+                xhr.onreadystatechange = function() {
   
                     // If the Ajax request is complete and it is successful
                     if (this.readyState === 4 && this.status === 200) {
@@ -534,8 +545,7 @@
         _parseGithubResponse: function(obj) {
 
             // LOCAL VARIABLES
-            var self = this,
-                base64EncodedContent,
+            var base64EncodedContent,
                 content,
                 contentArray,
                 text;
@@ -589,7 +599,7 @@
                     fs.root.getFile(obj.fileName, { create: true }, function(fileEntry) {
 
                         // Create a FileWriter object for our FileEntry
-                        fileEntry.createWriter(function(fileWriter) {
+                        fileEntry.createWriter(function() {
 
                             // Create a new Blob
                             blob = new window.Blob([obj.data], { type: "text/" + obj.lang });
@@ -616,8 +626,7 @@
         _fileStatus: function(obj) {
 
             // LOCAL VARIABLES
-            var self = this,
-                url;
+            var self = this;
 
             // If the last checkbox is being process
             if(obj.lastElem) {
